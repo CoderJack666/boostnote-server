@@ -1,0 +1,85 @@
+createdAt: "2018-09-11T06:40:03.241Z"
+updatedAt: "2018-09-11T07:00:59.823Z"
+type: "SNIPPET_NOTE"
+folder: "b2175de5d0b4e13de596"
+title: "使用AOP记录方法执行时间的logger"
+description: "使用AOP记录方法执行时间的logger"
+snippets: [
+  {
+    name: "MethodExecuteTimeLogger"
+    mode: "Java"
+    content: '''
+      @Slf4j
+      @Aspect
+      @Component
+      public class MethodExecuteTimeLogger {
+      
+        @Around("@annotation(loggable)")
+        public void log(ProceedingJoinPoint joinPoint, Loggable loggable) throws Throwable {
+          Stopwatch stopwatch = Stopwatch.createStarted();
+          Object result = point.proceed();
+          long took = stopwatch.stop.elapsed(TimeUnit.MILLISECONDS);
+          String methodName = point.signature.toShortString();
+          TimeUnit timeUnit = loggable.unit();
+          long limit = unit.convert(loggable.limit() as long, TimeUnit.MILLISECONDS);
+          int level = loggable.level();
+          if (took > limit) { // 方法执行超过限定时间
+            if (level < 3) {
+              log(3, 'method [{}] took more than {}ms, {}ms already, thread=[{}] [{}]', methodName, limit, took, Thread.currentThread().getName(), Thread.currentThread().getState());
+            } else {
+              log(level, 'method [{}] took {}ms, thread=[{}] [{}]', methodName, took, Thread.currentThread().getName(), Thread.currentThread().getState());
+            }
+          }
+          return result;
+        }
+        
+        private log(int level, String message, Object... params) {
+          switch(level) {
+            case 0: log.trace(message, params);
+              break;
+            case 1: log.debug(message, params);
+              break;
+            case 2: log.info(message, params);
+              break;
+            case 3: log.warn(message, params);
+              break;
+            case 4: log.error(message, params);
+              break;
+            default: log.info(message, params);
+          }
+        }
+        
+      }
+    '''
+  }
+  {
+    name: "Loggable"
+    mode: "Java"
+    content: '''
+      @Target([ElementType.METHOD, ElementType.TYPE])
+      @Retention(RetentionPolicy.RUNTIME)
+      @interface Loggable {
+        final int TRACE = 0;
+        final int DEBUG = 1;
+        final int INFO = 2;
+        final int WARN = 3;
+        final int ERROR = 4;
+        
+        int value() default level();
+        
+        int level() default 2;
+        
+        TimeUnit unit() default MILLISECONDS;
+        
+        int limit() default 500;
+        
+      }
+    '''
+  }
+]
+tags: [
+  "Java"
+  "Aop"
+]
+isStarred: true
+isTrashed: false
